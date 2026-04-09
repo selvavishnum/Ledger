@@ -2079,8 +2079,7 @@ function downloadExcel(mode){
     ...rows.map(r=>r.join(',')),
     ...summaryRows.map(r=>r.join(','))
   ];
-  const csv='﻿'+csvLines.join('
-'); // BOM for Excel Tamil text support
+  const csv='\ufeff'+csvLines.join('\n'); // BOM for Excel Tamil text support
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
