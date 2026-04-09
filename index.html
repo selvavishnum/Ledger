@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Selva Ledger">
+<meta name="theme-color" content="#059669">
 <title>Selva Ledger Pro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Tamil:wght@400;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -499,7 +504,16 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);ba
 
   <!-- ── REPORTS ── -->
   <div class="pane" id="pane-report">
-    <div class="card"><div class="chd">&#128200; Monthly P&amp;L Report</div><div class="mtabs" id="mtabs"></div><div id="pl-wrap"></div></div>
+    <div class="card">
+      <div class="chd">&#128200; P&amp;L Report</div>
+      <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn G sm" style="margin-top:0" onclick="downloadExcel('month')">&#128229; Monthly Excel</button>
+        <button class="btn B sm" style="margin-top:0" onclick="downloadExcel('week')">&#128229; Weekly Excel</button>
+        <button class="btn S sm" style="margin-top:0" onclick="downloadExcel('all')">&#128229; All Data Excel</button>
+      </div>
+      <div class="mtabs" id="mtabs"></div>
+      <div id="pl-wrap"></div>
+    </div>
     <div class="card">
       <div class="chd">&#129504; AI Learning Status</div>
       <div id="ai-info" class="alert info">No corrections learned yet &mdash; fix scan entries to teach AI</div>
@@ -1335,15 +1349,24 @@ SKIP ONLY:
 - Pure running subtotal numbers with NO description text
 - Page numbers, dates at top (the date goes in note_date field)
 
-RULES:
+LANGUAGE RULES — CRITICAL:
+- This ledger is from TAMIL NADU. All text is TAMIL or ENGLISH only.
+- NEVER output Malayalam (Kerala) script. If you see ക,ഗ,ട,ദ,ന,പ,ബ,മ,ര,ല,വ,ശ,സ — these are NOT in this ledger.
+- Tamil script uses: அ,ஆ,இ,ஈ,உ,ஊ — verify before outputting any Tamil.
+- If unsure of a word's script, write it in English transliteration instead.
+- DO NOT skip the date line — put date in note_date field only, don't create an entry for it.
+
+EXTRACT RULES:
 1. Extract EVERY line that has a description + amount
-2. "Total Sales" and "Opening Balance" ARE valid entries — extract them as type="sales"
-3. Keep Tamil text exactly as written
-4. Tamil numerals (௧௨௩) → Arabic (1,2,3)
-5. Keep desc SHORT (max 30 chars)
-6. COMPACT JSON only — no markdown
-7. amount = NUMBER. null only if truly illegible
-8. doubt=true only for genuinely unclear entries
+2. "Total Sales" and "Opening Balance" ARE valid entries — type="sales"
+3. Keep Tamil text as Tamil script (Tamil Nadu dialect only, NOT Malayalam)
+4. If Tamil script is unclear, use English equivalent (e.g., "Load Man" not "ലോഡ് മാൻ")
+5. Tamil numerals (௧௨௩) → Arabic (1,2,3)
+6. Skip date header lines (25/03/26 Friday etc.) — they go in note_date only
+7. Keep desc SHORT (max 30 chars)
+8. COMPACT JSON only — no markdown
+9. amount = NUMBER. null only if truly illegible
+10. doubt=true only for genuinely unclear entries
 
 Return ONLY: {"note_date":"YYYY-MM-DD or null","entries":[{"id":1,"type":"sales","desc":"GPay","amount":17736,"category":"GPay","ref":null,"supplier":null,"doubt":false,"doubtQ":null}],"summary":"N entries"}`;
 
@@ -1454,7 +1477,7 @@ function renderOneEntry(e,i,cont){
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
       <div class="fg"><label>Type</label>
-        <select onchange="if(this.value!==_scanEntries[${i}].type)saveCorr(_scanEntries[${i}].desc,_scanEntries[${i}].type,this.value,_scanEntries[${i}].category);_scanEntries[${i}].type=this.value;refreshEnt(${i})" style="font-size:13px;padding:8px">
+        <select id="type-sel-${i}" onchange="changeEntryType(${i},this.value)" style="font-size:13px;padding:8px">
           <option value="sales" ${e.type==='sales'?'selected':''}>💚 Sales</option>
           <option value="expense" ${e.type==='expense'?'selected':''}>🔴 Expense</option>
           <option value="payment" ${e.type==='payment'?'selected':''}>🟡 Payment</option>
@@ -1462,7 +1485,7 @@ function renderOneEntry(e,i,cont){
         </select>
       </div>
       <div class="fg"><label>Category</label>
-        <select onchange="_scanEntries[${i}].category=this.value" style="font-size:13px;padding:8px">
+        <select id="cat-sel-${i}" onchange="_scanEntries[${i}].category=this.value" style="font-size:13px;padding:8px">
           <option value="">— Select —</option>${e.type==='sales'?sCats:xCats}
         </select>
       </div>
@@ -1474,6 +1497,25 @@ function renderOneEntry(e,i,cont){
     </div>
     ${e.doubt?`<div class="dbox" id="db-${i}"><div class="dq">❓ ${esc(e.doubtQ||'Please clarify this entry')}</div><div class="drow"><input class="dinp" id="da-${i}" placeholder="Type your answer..." onkeydown="if(event.key==='Enter')resolveDoubt(${i})"><button class="btn G sm" onclick="resolveDoubt(${i})">✓ OK</button></div></div>`:''}`;
   cont.appendChild(div);
+}
+
+// Fix: when type changes, rebuild category dropdown
+function changeEntryType(i, newType){
+  const e = _scanEntries[i];
+  if(newType !== e.type) saveCorr(e.desc, e.type, newType, e.category);
+  e.type = newType;
+  e.category = ''; // reset category when type changes
+
+  // Rebuild category select for this entry
+  const shop = e.shop || v('sc-shop') || 's1';
+  const sCats = (CATS[shop]?.sales||[]).map(c=>`<option value="${c}">${c}</option>`).join('');
+  const xCats = (CATS[shop]?.expense||[]).map(c=>`<option value="${c}">${c}</option>`).join('');
+  const catSel = document.getElementById('cat-sel-'+i);
+  if(catSel){
+    catSel.innerHTML = '<option value="">— Select —</option>'+(newType==='sales'?sCats:xCats);
+    catSel.value = '';
+  }
+  refreshEnt(i);
 }
 
 function delEntry(i){ _scanEntries.splice(i,1); const l=document.getElementById('entries-list');l.innerHTML=''; _scanEntries.forEach((e,idx)=>renderOneEntry(e,idx,l)); updCBtn(); }
@@ -1984,6 +2026,71 @@ async function loadAudit(){
 }
 function fmtM(m){const[y,mo]=m.split('-');return['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(mo)]+' '+y;}
 
+// ── EXCEL DOWNLOAD ──
+function downloadExcel(mode){
+  let txs=[...TXS], label='All';
+  const t=new Date(), y=t.getFullYear(), mo=String(t.getMonth()+1).padStart(2,'0');
+  if(mode==='month'){
+    txs=TXS.filter(x=>x.date?.startsWith(y+'-'+mo));
+    label=fmtM(y+'-'+mo);
+  } else if(mode==='week'){
+    const ws=new Date(); ws.setDate(ws.getDate()-6);
+    const wStr=ws.toISOString().split('T')[0];
+    txs=TXS.filter(x=>x.date>=wStr);
+    label='Week_'+wStr+'_to_'+new Date().toISOString().split('T')[0];
+  }
+  if(!txs.length){toast('No data for this period','warn');return;}
+
+  // Build CSV content (Excel opens CSV perfectly)
+  const headers=['Date','Shop','Type','Description','Category','Amount (Rs)','Supplier','Bill Ref','By','Source'];
+  const rows=txs.map(t=>[
+    t.date||'',
+    SHOPS[t.shop]?.name||t.shop||'',
+    t.type||'',
+    '"'+(t.desc||'').replace(/"/g,"''")+'"',
+    t.category||'',
+    t.amount||0,
+    t.supplier||'',
+    t.billRef||'',
+    t.by||'',
+    t.source||''
+  ]);
+
+  // Summary rows
+  const s=sum(txs,'sales'),e=sum(txs,'expense'),p=sum(txs,'payment'),net=s-e-p;
+  const summaryRows=[
+    [],
+    ['SUMMARY','','','','','','','','',''],
+    ['','Total Sales','','','',s,'','','',''],
+    ['','Total Expenses','','','',e,'','','',''],
+    ['','Supplier Payments','','','',p,'','','',''],
+    ['','NET BALANCE','','','',net,'','','',''],
+    [],
+    ['SHOP WISE SUMMARY','','','','','','','','',''],
+  ];
+  Object.keys(SHOPS).forEach(k=>{
+    const stxs=txs.filter(t=>t.shop===k);
+    const ss=sum(stxs,'sales'),se=sum(stxs,'expense')+sum(stxs,'payment'),sn=ss-se;
+    summaryRows.push([SHOPS[k]?.name||k,'Sales:'+ss+' Expense:'+se+' Net:'+sn,'','','','','','','','']);
+  });
+
+  const csvLines=[
+    headers.join(','),
+    ...rows.map(r=>r.join(',')),
+    ...summaryRows.map(r=>r.join(','))
+  ];
+  const csv='﻿'+csvLines.join('
+'); // BOM for Excel Tamil text support
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='SelvaLedger_'+label+'_'+new Date().toISOString().split('T')[0]+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('✅ Excel file downloaded! ('+txs.length+' entries)');
+}
+
 // ════════════════════════════════════════
 // STAFF
 // ════════════════════════════════════════
@@ -2068,6 +2175,36 @@ function v(id){ return document.getElementById(id)?.value||''; }
 // ════════════════════════════════════════
 // BOOT — Show login immediately, then check auth
 // ════════════════════════════════════════
+// ── PREVENT PAGE REFRESH WHEN SWITCHING APPS/TABS ──
+let _appState = null;
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){
+    // Save state when leaving
+    _appState = {
+      pane: document.querySelector('.pane.on')?.id || 'pane-dash',
+      shop: _shop, lang: _lang, timestamp: Date.now()
+    };
+    localStorage.setItem('slv_appstate', JSON.stringify(_appState));
+  } else {
+    // Restore state when returning — don't reload
+    try{
+      const saved = JSON.parse(localStorage.getItem('slv_appstate')||'null');
+      if(saved && (Date.now()-saved.timestamp) < 30*60*1000 && ME){ // 30 min
+        // Just re-render, don't reload
+        renderDash(); renderLedger();
+        return; // prevent any reload
+      }
+    }catch(e){}
+  }
+});
+
+// Block beforeunload to prevent accidental refresh
+window.addEventListener('beforeunload', e=>{
+  if(ME && document.getElementById('app').style.display!=='none'){
+    localStorage.setItem('slv_appstate', JSON.stringify({pane: document.querySelector('.pane.on')?.id||'pane-dash', shop:_shop, lang:_lang, timestamp:Date.now()}));
+  }
+});
+
 window.onload=()=>{
   // FAST: Show login screen immediately — don't wait for Firebase
   document.getElementById('login-screen').style.display='flex';
