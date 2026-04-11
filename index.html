@@ -262,6 +262,47 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);ba
 .plt td{padding:8px;border-bottom:1px solid var(--border)}
 .plt tr:last-child td{border:none;font-weight:800}
 
+/* MIS REPORT SECTIONS */
+.rpt-nav{display:flex;gap:5px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none;margin-bottom:6px}
+.rpt-nav::-webkit-scrollbar{display:none}
+.rpt-chip{flex-shrink:0;padding:6px 11px;border-radius:16px;font-size:10px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:var(--soft);color:var(--muted);white-space:nowrap;transition:all .2s}
+.rpt-chip.on{background:var(--green);color:#fff;border-color:var(--green)}
+.rpt-section{display:none;animation:fadeRpt .25s}
+.rpt-section.on{display:block}
+@keyframes fadeRpt{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.rpt-kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.rpt-kpi3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:12px}
+.rpt-k{background:var(--soft);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center}
+.rpt-k .kl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px}
+.rpt-k .kv{font-size:18px;font-weight:800;font-family:var(--mono)}
+.rpt-k .kd{font-size:10px;font-weight:600;margin-top:2px}
+.rpt-k .kd.up{color:var(--green)}.rpt-k .kd.dn{color:var(--red)}
+.rbar{display:flex;align-items:center;gap:6px;padding:5px 0}
+.rbar-lbl{font-size:11px;font-weight:600;width:70px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rbar-track{flex:1;height:10px;background:var(--border);border-radius:6px;overflow:hidden}
+.rbar-fill{height:100%;border-radius:6px;transition:width .5s}
+.rbar-val{font-size:11px;font-weight:700;font-family:var(--mono);width:65px;text-align:right;flex-shrink:0}
+.rbar-pct{font-size:9px;color:var(--muted);width:32px;text-align:right;flex-shrink:0}
+.tbar{display:flex;align-items:flex-end;gap:2px;height:80px;margin-bottom:2px}
+.tbar-col{flex:1;border-radius:3px 3px 0 0;transition:height .4s;min-width:4px;position:relative}
+.tbar-col:hover{opacity:.8}
+.tbar-xl{display:flex;justify-content:space-between;font-size:8px;color:var(--muted);margin-top:2px}
+.var-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+.var-row:last-child{border:none}
+.var-lbl{flex:1;font-size:12px;font-weight:600}
+.var-prev{font-size:11px;color:var(--muted);font-family:var(--mono);width:65px;text-align:right}
+.var-cur{font-size:11px;font-weight:700;font-family:var(--mono);width:65px;text-align:right}
+.var-chg{font-size:10px;font-weight:700;width:55px;text-align:right}
+.insight-item{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.insight-item:last-child{border:none}
+.insight-icon{font-size:16px;flex-shrink:0;width:22px;text-align:center}
+.action-item{background:var(--soft);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:7px;font-size:12px}
+.action-item b{color:var(--green);font-size:11px}
+.alert-box{border-radius:9px;padding:10px 12px;margin-bottom:8px;font-size:12px;display:flex;align-items:flex-start;gap:8px}
+.alert-box.critical{background:var(--rl);border:1px solid #fca5a5;color:var(--red)}
+.alert-box.warning{background:var(--yl);border:1px solid #fcd34d;color:var(--yellow)}
+.alert-box.good{background:var(--gl);border:1px solid #6ee7b7;color:var(--green)}
+
 /* TOAST */
 #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;font-family:var(--sans)}
 #toast.show{opacity:1}
@@ -504,19 +545,81 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);ba
 
   <!-- ── REPORTS ── -->
   <div class="pane" id="pane-report">
-    <div class="card">
-      <div class="chd">&#128200; P&amp;L Report</div>
-      <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
+    <!-- Period selector -->
+    <div class="dtabs" id="rpt-date-tabs">
+      <div class="dtab on" onclick="setRptDate('week',this)">&#128198; This Week</div>
+      <div class="dtab" onclick="setRptDate('month',this)">&#128197; This Month</div>
+      <div class="dtab" onclick="setRptDate('lastmonth',this)">&#9194; Last Month</div>
+      <div class="dtab" onclick="setRptDate('custom',this)">&#128198; Custom</div>
+    </div>
+    <div class="cdrow" id="rpt-cdrow">
+      <div class="fr"><div class="fg"><label>From</label><input type="date" id="rpt-from" onchange="renderReports()"></div><div class="fg"><label>To</label><input type="date" id="rpt-to" onchange="renderReports()"></div></div>
+    </div>
+
+    <!-- Report Section Navigation -->
+    <div class="rpt-nav" id="rpt-nav"></div>
+
+    <!-- 1. EXECUTIVE SUMMARY -->
+    <div class="rpt-section on" id="rpt-exec">
+      <div class="card"><div class="chd">&#128202; Executive Summary</div><div id="rpt-exec-body"></div></div>
+    </div>
+    <!-- 2. DAILY REPORT -->
+    <div class="rpt-section" id="rpt-daily">
+      <div class="card"><div class="chd">&#128197; Daily Report</div><div id="rpt-daily-body"></div></div>
+    </div>
+    <!-- 3. WEEKLY REPORT -->
+    <div class="rpt-section" id="rpt-weekly">
+      <div class="card"><div class="chd">&#128198; Weekly Report</div><div id="rpt-weekly-body"></div></div>
+    </div>
+    <!-- 4. MONTHLY REPORT -->
+    <div class="rpt-section" id="rpt-monthly">
+      <div class="card"><div class="chd">&#128200; Monthly P&amp;L</div><div id="rpt-monthly-body"></div></div>
+    </div>
+    <!-- 5. EXPENSE BREAKDOWN -->
+    <div class="rpt-section" id="rpt-expense">
+      <div class="card"><div class="chd">&#128184; Expense Breakdown</div><div id="rpt-expense-body"></div></div>
+    </div>
+    <!-- 6. PAYMENT REPORT -->
+    <div class="rpt-section" id="rpt-payment">
+      <div class="card"><div class="chd">&#128176; Payment Report</div><div id="rpt-payment-body"></div></div>
+    </div>
+    <!-- 7. SALARY REPORT -->
+    <div class="rpt-section" id="rpt-salary">
+      <div class="card"><div class="chd">&#128100; Salary Report</div><div id="rpt-salary-body"></div></div>
+    </div>
+    <!-- 8. VARIANCE ANALYSIS -->
+    <div class="rpt-section" id="rpt-variance">
+      <div class="card"><div class="chd">&#128201; Variance Analysis</div><div id="rpt-variance-body"></div></div>
+    </div>
+    <!-- 9. CHARTS -->
+    <div class="rpt-section" id="rpt-charts">
+      <div class="card"><div class="chd">&#128202; Trend Charts</div><div id="rpt-charts-body"></div></div>
+    </div>
+    <!-- 10. ALERTS -->
+    <div class="rpt-section" id="rpt-alerts">
+      <div class="card"><div class="chd">&#128680; Alerts &amp; Risks</div><div id="rpt-alerts-body"></div></div>
+    </div>
+    <!-- 11. INSIGHTS -->
+    <div class="rpt-section" id="rpt-insights">
+      <div class="card"><div class="chd">&#9989; Business Insights</div><div id="rpt-insights-body"></div></div>
+    </div>
+    <!-- 12. ACTION PLAN -->
+    <div class="rpt-section" id="rpt-actions">
+      <div class="card"><div class="chd">&#128204; Action Plan</div><div id="rpt-actions-body"></div></div>
+    </div>
+
+    <!-- Downloads -->
+    <div class="card" style="margin-top:6px">
+      <div class="chd">&#128229; Download Reports</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
         <button class="btn G sm" style="margin-top:0" onclick="downloadExcel('month')">&#128229; Monthly Excel</button>
         <button class="btn B sm" style="margin-top:0" onclick="downloadExcel('week')">&#128229; Weekly Excel</button>
-        <button class="btn S sm" style="margin-top:0" onclick="downloadExcel('all')">&#128229; All Data Excel</button>
+        <button class="btn S sm" style="margin-top:0" onclick="downloadExcel('all')">&#128229; All Data</button>
       </div>
-      <div class="mtabs" id="mtabs"></div>
-      <div id="pl-wrap"></div>
     </div>
     <div class="card">
       <div class="chd">&#129504; AI Learning Status</div>
-      <div id="ai-info" class="alert info">No corrections learned yet &mdash; fix scan entries to teach AI</div>
+      <div id="ai-info" class="alert info">No corrections learned yet</div>
       <button class="btn S sm" style="margin-top:8px" onclick="clearAI()">&#128465;&#65039; Clear AI Memory</button>
     </div>
     <div class="card"><div class="chd">&#128203; Audit Log</div><div id="audit-wrap"></div></div>
@@ -552,6 +655,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);ba
     <button class="nbt" onclick="goPane('entry',this)"><span class="ni">&#9999;&#65039;</span><span class="nl">Entry</span></button>
     <button class="nbt" onclick="goPane('ledger',this)"><span class="ni">&#128203;</span><span class="nl">Ledger</span></button>
     <button class="nbt" onclick="goPane('sup',this)"><span class="ni">&#127991;&#65039;</span><span class="nl">Suppliers</span></button>
+    <button class="nbt" onclick="goPane('report',this)"><span class="ni">&#128200;</span><span class="nl">Reports</span></button>
   </div>
 </div>
 
@@ -1985,30 +2089,285 @@ async function saveBill(){
 }
 
 // ════════════════════════════════════════
-// REPORTS
+// REPORTS — FULL MIS / CFO REPORT ENGINE
 // ════════════════════════════════════════
+let _rptDate='week';
+const RPT_SECTIONS=[
+  {id:'exec',label:'📊 Summary'},
+  {id:'daily',label:'📅 Daily'},
+  {id:'weekly',label:'📆 Weekly'},
+  {id:'monthly',label:'📈 Monthly'},
+  {id:'expense',label:'💸 Expense'},
+  {id:'payment',label:'💰 Payment'},
+  {id:'salary',label:'👤 Salary'},
+  {id:'variance',label:'📉 Variance'},
+  {id:'charts',label:'📊 Charts'},
+  {id:'alerts',label:'🚨 Alerts'},
+  {id:'insights',label:'✅ Insights'},
+  {id:'actions',label:'📌 Actions'}
+];
+
+function setRptDate(m,el){
+  _rptDate=m;
+  document.querySelectorAll('#rpt-date-tabs .dtab').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  const cr=document.getElementById('rpt-cdrow');
+  if(cr){cr.style.display=m==='custom'?'block':'none';
+    if(m==='custom'){
+      const df=document.getElementById('rpt-from'),dt=document.getElementById('rpt-to');
+      if(df&&!df.value){const f=new Date();f.setDate(f.getDate()-30);df.value=f.toISOString().split('T')[0];}
+      if(dt&&!dt.value)dt.value=tod();
+    }
+  }
+  renderReports();
+}
+
+function getRptFilter(){
+  const t=tod();
+  const y=new Date(),ws=new Date(),ms=new Date();
+  ws.setDate(ws.getDate()-6);
+  if(_rptDate==='week') return x=>x.date>=ws.toISOString().split('T')[0];
+  if(_rptDate==='month') return x=>x.date>=(t.substring(0,7)+'-01');
+  if(_rptDate==='lastmonth'){
+    const d=new Date();d.setMonth(d.getMonth()-1);
+    const lm=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    return x=>x.date?.startsWith(lm);
+  }
+  if(_rptDate==='custom'){
+    const fr=document.getElementById('rpt-from')?.value||'';
+    const to=document.getElementById('rpt-to')?.value||t;
+    return x=>x.date&&(!fr||x.date>=fr)&&x.date<=to;
+  }
+  return x=>x.date>=ws.toISOString().split('T')[0];
+}
+
+function getPrevFilter(){
+  const t=tod();
+  const ws=new Date();ws.setDate(ws.getDate()-6);
+  if(_rptDate==='week'){const ps=new Date();ps.setDate(ps.getDate()-13);return x=>x.date>=ps.toISOString().split('T')[0]&&x.date<ws.toISOString().split('T')[0];}
+  if(_rptDate==='month'){
+    const d=new Date();d.setMonth(d.getMonth()-1);
+    const lm=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    return x=>x.date?.startsWith(lm);
+  }
+  if(_rptDate==='lastmonth'){
+    const d=new Date();d.setMonth(d.getMonth()-2);
+    const lm=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    return x=>x.date?.startsWith(lm);
+  }
+  return x=>false;
+}
+
 function renderReports(){
-  const months=[],seen=new Set();
-  TXS.forEach(t=>{const m=t.date?.substring(0,7);if(m&&!seen.has(m)){seen.add(m);months.push(m);}});
-  const now=new Date().toISOString().substring(0,7); if(!seen.has(now))months.push(now);
-  months.sort().reverse();
-  const mt=document.getElementById('mtabs');
-  mt.innerHTML=months.slice(0,6).map((m,i)=>`<div class="mtab${i===0?' on':''}" onclick="showMonth('${m}',this)">${fmtM(m)}</div>`).join('');
-  if(months.length) showMonth(months[0],mt.querySelector('.mtab'));
+  // Build nav chips
+  const nav=document.getElementById('rpt-nav');
+  nav.innerHTML=RPT_SECTIONS.map((s,i)=>`<div class="rpt-chip${i===0?' on':''}" onclick="showRptSection('${s.id}',this)">${s.label}</div>`).join('');
+
+  const ff=getRptFilter();
+  let txs=TXS.filter(ff);
+  if(_shop!=='all') txs=txs.filter(x=>x.shop===_shop);
+  const pf=getPrevFilter();
+  let ptxs=TXS.filter(pf);
+  if(_shop!=='all') ptxs=ptxs.filter(x=>x.shop===_shop);
+
+  const s=sum(txs,'sales'),e=sum(txs,'expense'),p=sum(txs,'payment'),te=e+p,net=s-te;
+  const ps=sum(ptxs,'sales'),pe=sum(ptxs,'expense')+sum(ptxs,'payment'),pnet=ps-pe;
+  const margin=s>0?((net/s)*100).toFixed(1):0;
+  const growthS=ps>0?(((s-ps)/ps)*100).toFixed(1):'-';
+  const growthP=pnet!==0?(((net-pnet)/Math.abs(pnet))*100).toFixed(1):'-';
+
+  // Get unique dates
+  const dates=[...new Set(txs.map(x=>x.date).filter(Boolean))].sort();
+  const days=dates.length||1;
+  const avgDaily=Math.round(s/days);
+
+  // ═══ 1. EXECUTIVE SUMMARY ═══
+  document.getElementById('rpt-exec-body').innerHTML=`
+    <div class="pill ${net>=0?'ok':'bad'}"><div class="pdot"></div>${net>=0?'✓ Profitable — ₹'+fmt(net)+' net':'✗ Loss — ₹'+fmt(Math.abs(net))+' deficit'}</div>
+    <div class="rpt-kpi">
+      <div class="rpt-k"><div class="kl">Total Sales</div><div class="kv cg">₹${fmt(s)}</div><div class="kd ${growthS!=='-'&&growthS>=0?'up':'dn'}">${growthS!=='-'?growthS+'% vs prev':''}</div></div>
+      <div class="rpt-k"><div class="kl">Total Expenses</div><div class="kv cr">₹${fmt(te)}</div></div>
+      <div class="rpt-k"><div class="kl">Net Profit</div><div class="kv ${net>=0?'cg':'cr'}">${net>=0?'+':''}₹${fmt(net)}</div><div class="kd ${growthP!=='-'&&growthP>=0?'up':'dn'}">${growthP!=='-'?growthP+'% vs prev':''}</div></div>
+      <div class="rpt-k"><div class="kl">Margin</div><div class="kv ${margin>=5?'cg':'cr'}">${margin}%</div></div>
+    </div>
+    <div class="rpt-kpi3">
+      <div class="rpt-k"><div class="kl">Days</div><div class="kv">${days}</div></div>
+      <div class="rpt-k"><div class="kl">Avg/Day</div><div class="kv cb">₹${fmt(avgDaily)}</div></div>
+      <div class="rpt-k"><div class="kl">Entries</div><div class="kv">${txs.length}</div></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted)">Shop-wise P&L:</div>
+    <table class="plt" style="margin-top:6px"><thead><tr><th>Shop</th><th>Sales</th><th>Expense</th><th>Net</th></tr></thead><tbody>
+    ${Object.keys(SHOPS).map(k=>{const st=txs.filter(x=>x.shop===k),ss=sum(st,'sales'),se=sum(st,'expense')+sum(st,'payment'),sn=ss-se;
+      return `<tr><td>${SHOPS[k].icon} ${SHOPS[k].name}</td><td style="color:var(--green)">₹${fmt(ss)}</td><td style="color:var(--red)">₹${fmt(se)}</td><td style="color:${sn>=0?'var(--green)':'var(--red)'}">${sn>=0?'+':''}₹${fmt(sn)}</td></tr>`;
+    }).join('')}
+    <tr><td><b>TOTAL</b></td><td><b style="color:var(--green)">₹${fmt(s)}</b></td><td><b style="color:var(--red)">₹${fmt(te)}</b></td><td><b style="color:${net>=0?'var(--green)':'var(--red)'}">${net>=0?'+':''}₹${fmt(net)}</b></td></tr>
+    </tbody></table>`;
+
+  // ═══ 2. DAILY REPORT ═══
+  const dailyData=dates.map(d=>{const dt=txs.filter(x=>x.date===d),ds=sum(dt,'sales'),de=sum(dt,'expense')+sum(dt,'payment'),dn=ds-de;return{date:d,sales:ds,exp:de,net:dn,cnt:dt.length};});
+  const bestDay=dailyData.reduce((a,b)=>b.sales>a.sales?b:a,{sales:0});
+  const worstDay=dailyData.reduce((a,b)=>b.sales<a.sales?b:a,{sales:Infinity});
+  document.getElementById('rpt-daily-body').innerHTML=`
+    <div class="rpt-kpi">
+      <div class="rpt-k" style="border:1px solid #6ee7b7"><div class="kl">🔥 Best Day</div><div class="kv cg">₹${fmt(bestDay.sales)}</div><div class="kd">${bestDay.date||'-'}</div></div>
+      <div class="rpt-k" style="border:1px solid #fca5a5"><div class="kl">⚠️ Lowest Day</div><div class="kv cr">₹${fmt(worstDay.sales===Infinity?0:worstDay.sales)}</div><div class="kd">${worstDay.date||'-'}</div></div>
+    </div>
+    <div class="ltw"><table class="plt"><thead><tr><th>Date</th><th>Sales</th><th>Expense</th><th>Profit</th><th>↑↓</th></tr></thead><tbody>
+    ${dailyData.map((d,i)=>{const prev=i>0?dailyData[i-1].net:0;const arrow=d.net>prev?'<span style="color:var(--green)">↑</span>':'<span style="color:var(--red)">↓</span>';
+      return `<tr><td style="font-size:11px">${d.date}</td><td style="color:var(--green)">₹${fmt(d.sales)}</td><td style="color:var(--red)">₹${fmt(d.exp)}</td><td style="color:${d.net>=0?'var(--green)':'var(--red)'}">${d.net>=0?'+':''}₹${fmt(d.net)}</td><td>${arrow}</td></tr>`;
+    }).join('')}
+    </tbody></table></div>
+    <div style="margin-top:8px;font-size:11px;color:var(--muted)">
+      ${bestDay.sales>avgDaily*1.5?'🔥 Best day was '+Math.round(bestDay.sales/avgDaily*100)+'% of avg — check what worked!':''}
+      ${worstDay.sales<avgDaily*0.5&&worstDay.sales!==Infinity?'<br>⚠️ Lowest day was only '+Math.round(worstDay.sales/avgDaily*100)+'% of avg — investigate.':''}
+    </div>`;
+
+  // ═══ 3. WEEKLY REPORT ═══
+  const weekMap={};
+  txs.forEach(t=>{if(!t.date)return;const d=new Date(t.date),wn=Math.ceil((d.getDate())/7);const wk=t.date.substring(0,7)+'-W'+wn;if(!weekMap[wk])weekMap[wk]={sales:0,exp:0,days:new Set()};weekMap[wk].sales+=t.type==='sales'?(t.amount||0):0;weekMap[wk].exp+=t.type!=='sales'?(t.amount||0):0;weekMap[wk].days.add(t.date);});
+  const weeks=Object.entries(weekMap).sort((a,b)=>a[0].localeCompare(b[0]));
+  document.getElementById('rpt-weekly-body').innerHTML=`
+    <table class="plt"><thead><tr><th>Week</th><th>Sales</th><th>Avg/Day</th><th>Expense</th><th>Net</th></tr></thead><tbody>
+    ${weeks.map(([wk,v],i)=>{const wnet=v.sales-v.exp;const wdays=v.days.size||1;const prevW=i>0?weeks[i-1][1]:null;const wg=prevW?((v.sales-prevW.sales)/prevW.sales*100).toFixed(0)+'%':'-';
+      return `<tr><td style="font-size:10px">${wk}</td><td style="color:var(--green)">₹${fmt(v.sales)}</td><td>₹${fmt(Math.round(v.sales/wdays))}</td><td style="color:var(--red)">₹${fmt(v.exp)}</td><td style="color:${wnet>=0?'var(--green)':'var(--red)'}">${wnet>=0?'+':''}₹${fmt(wnet)} <span style="font-size:9px">(${wg})</span></td></tr>`;
+    }).join('')}
+    </tbody></table>`;
+
+  // ═══ 4. MONTHLY P&L ═══
+  const monthMap={};
+  TXS.forEach(t=>{if(!t.date)return;const m=t.date.substring(0,7);if(!monthMap[m])monthMap[m]={sales:0,exp:0};monthMap[m].sales+=t.type==='sales'?(t.amount||0):0;monthMap[m].exp+=t.type!=='sales'?(t.amount||0):0;});
+  const months=Object.entries(monthMap).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,6);
+  document.getElementById('rpt-monthly-body').innerHTML=`
+    <table class="plt"><thead><tr><th>Month</th><th>Sales</th><th>Expense</th><th>Net</th><th>Margin</th></tr></thead><tbody>
+    ${months.map(([m,v],i)=>{const mn=v.sales-v.exp;const mg=v.sales>0?((mn/v.sales)*100).toFixed(1)+'%':'0%';const prev=months[i+1];const chg=prev?((v.sales-prev[1].sales)/prev[1].sales*100).toFixed(0):'';
+      return `<tr><td>${fmtM(m)} ${chg?'<span style="font-size:9px;color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+(chg>=0?'↑':'↓')+chg+'%</span>':''}</td><td style="color:var(--green)">₹${fmt(v.sales)}</td><td style="color:var(--red)">₹${fmt(v.exp)}</td><td style="color:${mn>=0?'var(--green)':'var(--red)'}">${mn>=0?'+':''}₹${fmt(mn)}</td><td style="font-weight:700;color:${mn>=0?'var(--green)':'var(--red)'}"">${mg}</td></tr>`;
+    }).join('')}
+    </tbody></table>`;
+
+  // ═══ 5. EXPENSE BREAKDOWN ═══
+  const expTxs=txs.filter(x=>x.type==='expense'||x.type==='payment');
+  const catMap={};
+  expTxs.forEach(t=>{const c=t.category||t.desc||'Other';catMap[c]=(catMap[c]||0)+(t.amount||0);});
+  const cats=Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
+  const maxCat=cats.length?cats[0][1]:1;
+  const colors=['#dc2626','#ea580c','#d97706','#059669','#2563eb','#7c3aed','#db2777','#64748b'];
+  document.getElementById('rpt-expense-body').innerHTML=`
+    <div class="rpt-kpi">
+      <div class="rpt-k"><div class="kl">Total Expense</div><div class="kv cr">₹${fmt(te)}</div></div>
+      <div class="rpt-k"><div class="kl">Categories</div><div class="kv">${cats.length}</div></div>
+    </div>
+    ${cats.map((c,i)=>`<div class="rbar"><div class="rbar-lbl">${esc(c[0])}</div><div class="rbar-track"><div class="rbar-fill" style="width:${(c[1]/maxCat*100).toFixed(0)}%;background:${colors[i%colors.length]}"></div></div><div class="rbar-val">₹${fmt(c[1])}</div><div class="rbar-pct">${te>0?(c[1]/te*100).toFixed(0)+'%':'0%'}</div></div>`).join('')}
+    <div style="margin-top:10px"><table class="plt"><thead><tr><th>Category</th><th>Amount</th><th>% of Total</th></tr></thead><tbody>
+    ${cats.map(c=>`<tr><td>${esc(c[0])}</td><td>₹${fmt(c[1])}</td><td>${te>0?(c[1]/te*100).toFixed(1)+'%':'0%'}</td></tr>`).join('')}
+    <tr><td><b>TOTAL</b></td><td><b>₹${fmt(te)}</b></td><td><b>100%</b></td></tr>
+    </tbody></table></div>`;
+
+  // ═══ 6. PAYMENT REPORT ═══
+  const salesTxs=txs.filter(x=>x.type==='sales');
+  const payModes={};
+  salesTxs.forEach(t=>{const c=t.category||t.desc||'Cash';payModes[c]=(payModes[c]||0)+(t.amount||0);});
+  const pmEntries=Object.entries(payModes).sort((a,b)=>b[1]-a[1]);
+  const cash=payModes['Cash']||0;
+  const gpay=(payModes['GPay']||0)+(payModes['Gpay']||0)+(payModes['Vishnu GPay']||0);
+  const card=(payModes['Card']||0)+(payModes['Card Sales']||0);
+  document.getElementById('rpt-payment-body').innerHTML=`
+    <div class="rpt-kpi3">
+      <div class="rpt-k" style="border-left:3px solid var(--green)"><div class="kl">Cash</div><div class="kv cg">₹${fmt(cash)}</div><div class="kd">${s>0?(cash/s*100).toFixed(0)+'%':'0%'}</div></div>
+      <div class="rpt-k" style="border-left:3px solid var(--blue)"><div class="kl">GPay/UPI</div><div class="kv cb">₹${fmt(gpay)}</div><div class="kd">${s>0?(gpay/s*100).toFixed(0)+'%':'0%'}</div></div>
+      <div class="rpt-k" style="border-left:3px solid var(--purple)"><div class="kl">Card</div><div class="kv" style="color:var(--purple)">₹${fmt(card)}</div><div class="kd">${s>0?(card/s*100).toFixed(0)+'%':'0%'}</div></div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">ALL SALES CATEGORIES</div>
+    ${pmEntries.map(c=>`<div class="rbar"><div class="rbar-lbl">${esc(c[0])}</div><div class="rbar-track"><div class="rbar-fill" style="width:${s>0?(c[1]/s*100).toFixed(0):'0'}%;background:var(--green)"></div></div><div class="rbar-val">₹${fmt(c[1])}</div></div>`).join('')}`;
+
+  // ═══ 7. SALARY REPORT ═══
+  const salTxs=expTxs.filter(t=>{const d=(t.desc||'').toLowerCase()+(t.category||'').toLowerCase();return d.includes('salary')||d.includes('sal');});
+  const salMap={};
+  salTxs.forEach(t=>{const n=t.desc||t.category||'Staff';salMap[n]=(salMap[n]||0)+(t.amount||0);});
+  const salEntries=Object.entries(salMap).sort((a,b)=>b[1]-a[1]);
+  const totalSal=salEntries.reduce((a,b)=>a+b[1],0);
+  document.getElementById('rpt-salary-body').innerHTML=`
+    <div class="rpt-kpi">
+      <div class="rpt-k"><div class="kl">Total Salary</div><div class="kv cr">₹${fmt(totalSal)}</div></div>
+      <div class="rpt-k"><div class="kl">% of Revenue</div><div class="kv cy">${s>0?(totalSal/s*100).toFixed(1)+'%':'0%'}</div></div>
+    </div>
+    ${salEntries.length?`<table class="plt"><thead><tr><th>Staff/Role</th><th>Amount</th><th>% of Revenue</th></tr></thead><tbody>
+    ${salEntries.map(c=>`<tr><td>${esc(c[0])}</td><td>₹${fmt(c[1])}</td><td>${s>0?(c[1]/s*100).toFixed(1)+'%':'0%'}</td></tr>`).join('')}
+    <tr><td><b>TOTAL</b></td><td><b>₹${fmt(totalSal)}</b></td><td><b>${s>0?(totalSal/s*100).toFixed(1)+'%':'0%'}</b></td></tr>
+    </tbody></table>`:'<div class="empty">No salary entries found in this period. Tag salary entries with "Salary" in description.</div>'}`;
+
+  // ═══ 8. VARIANCE ANALYSIS ═══
+  document.getElementById('rpt-variance-body').innerHTML=`
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Current Period vs Previous Period</div>
+    <div class="var-row"><div class="var-lbl">Sales</div><div class="var-prev">₹${fmt(ps)}</div><div class="var-cur">₹${fmt(s)}</div><div class="var-chg ${s>=ps?'cg':'cr'}">${ps>0?((s-ps)/ps*100).toFixed(0)+'%':'-'} ${s>=ps?'↑':'↓'}</div></div>
+    <div class="var-row"><div class="var-lbl">Expenses</div><div class="var-prev">₹${fmt(pe)}</div><div class="var-cur">₹${fmt(te)}</div><div class="var-chg ${te<=pe?'cg':'cr'}">${pe>0?((te-pe)/pe*100).toFixed(0)+'%':'-'} ${te<=pe?'↓':'↑'}</div></div>
+    <div class="var-row"><div class="var-lbl">Net Profit</div><div class="var-prev">₹${fmt(pnet)}</div><div class="var-cur">₹${fmt(net)}</div><div class="var-chg ${net>=pnet?'cg':'cr'}">${pnet!==0?((net-pnet)/Math.abs(pnet)*100).toFixed(0)+'%':'-'} ${net>=pnet?'↑':'↓'}</div></div>
+    <div class="var-row"><div class="var-lbl">Margin</div><div class="var-prev">${ps>0?((pnet/ps)*100).toFixed(1):'0'}%</div><div class="var-cur">${margin}%</div><div class="var-chg ${margin>=(ps>0?((pnet/ps)*100).toFixed(1):0)?'cg':'cr'}">${margin>=(ps>0?(pnet/ps*100).toFixed(1):0)?'↑':'↓'}</div></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px"><b>Shop-wise Variance:</b></div>
+    ${Object.keys(SHOPS).map(k=>{
+      const ct=txs.filter(x=>x.shop===k),cs=sum(ct,'sales');
+      const pt2=ptxs.filter(x=>x.shop===k),pps=sum(pt2,'sales');
+      const chg=pps>0?((cs-pps)/pps*100).toFixed(0):'-';
+      return `<div class="var-row"><div class="var-lbl">${SHOPS[k].icon} ${SHOPS[k].name}</div><div class="var-prev">₹${fmt(pps)}</div><div class="var-cur">₹${fmt(cs)}</div><div class="var-chg ${cs>=pps?'cg':'cr'}">${chg!=='-'?chg+'%':'-'} ${cs>=pps?'↑':'↓'}</div></div>`;
+    }).join('')}`;
+
+  // ═══ 9. TREND CHARTS ═══
+  const maxSales=Math.max(...dailyData.map(d=>d.sales),1);
+  document.getElementById('rpt-charts-body').innerHTML=`
+    <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">SALES TREND (Day-wise)</div>
+    <div class="tbar">${dailyData.map(d=>`<div class="tbar-col" style="height:${(d.sales/maxSales*100).toFixed(0)}%;background:var(--green)" title="${d.date}: ₹${fmt(d.sales)}"></div>`).join('')}</div>
+    <div class="tbar-xl"><span>${dates[0]||''}</span><span>${dates[dates.length-1]||''}</span></div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);margin:12px 0 4px">EXPENSE TREND</div>
+    <div class="tbar">${dailyData.map(d=>`<div class="tbar-col" style="height:${(d.exp/maxSales*100).toFixed(0)}%;background:var(--red)" title="${d.date}: ₹${fmt(d.exp)}"></div>`).join('')}</div>
+    <div class="tbar-xl"><span>${dates[0]||''}</span><span>${dates[dates.length-1]||''}</span></div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);margin:12px 0 4px">PROFIT TREND</div>
+    <div class="tbar">${dailyData.map(d=>`<div class="tbar-col" style="height:${Math.max((d.net/maxSales*100),2).toFixed(0)}%;background:${d.net>=0?'var(--green)':'var(--red)'}" title="${d.date}: ₹${fmt(d.net)}"></div>`).join('')}</div>
+    <div class="tbar-xl"><span>${dates[0]||''}</span><span>${dates[dates.length-1]||''}</span></div>`;
+
+  // ═══ 10. ALERTS & RISKS ═══
+  const alerts=[];
+  if(net<0) alerts.push({type:'critical',msg:'🔴 Net Loss of ₹'+fmt(Math.abs(net))+' — expenses exceeding sales!'});
+  if(margin<3&&s>0) alerts.push({type:'critical',msg:'🔴 Profit margin only '+margin+'% — dangerously low for vegetables!'});
+  if(te>s*0.95&&s>0) alerts.push({type:'warning',msg:'🟡 Expenses at '+((te/s)*100).toFixed(0)+'% of sales — almost breakeven!'});
+  cats.filter(c=>c[1]>te*0.3).forEach(c=>alerts.push({type:'warning',msg:'🟡 "'+c[0]+'" is '+((c[1]/te)*100).toFixed(0)+'% of expenses — unusually high.'}));
+  dailyData.filter(d=>d.sales<avgDaily*0.4&&d.sales>0).forEach(d=>alerts.push({type:'warning',msg:'🟡 Low sales on '+d.date+': ₹'+fmt(d.sales)+' ('+Math.round(d.sales/avgDaily*100)+'% of avg)'}));
+  if(growthS!=='-'&&growthS<-10) alerts.push({type:'critical',msg:'🔴 Sales dropped '+growthS+'% vs previous period!'});
+  if(totalSal>s*0.15&&s>0) alerts.push({type:'warning',msg:'🟡 Salary is '+((totalSal/s)*100).toFixed(0)+'% of revenue — ideally below 15%.'});
+  SUPS.filter(sup=>getSupBal(sup.id)>30000).forEach(sup=>alerts.push({type:'warning',msg:'🟡 Supplier "'+sup.name+'" balance ₹'+fmt(getSupBal(sup.id))+' — high outstanding!'}));
+  if(!alerts.length) alerts.push({type:'good',msg:'✅ All parameters within normal range. Business is healthy!'});
+  document.getElementById('rpt-alerts-body').innerHTML=alerts.map(a=>`<div class="alert-box ${a.type}"><div style="flex:1">${a.msg}</div></div>`).join('');
+
+  // ═══ 11. BUSINESS INSIGHTS ═══
+  const insights=[];
+  const topShop=Object.keys(SHOPS).reduce((best,k)=>{const ss=sum(txs.filter(x=>x.shop===k),'sales');return ss>(best.s||0)?{k,s:ss}:best;},{});
+  if(topShop.k) insights.push({icon:'🏆',text:'<b>'+SHOPS[topShop.k].name+'</b> is your top shop with ₹'+fmt(topShop.s)+' sales ('+((topShop.s/s)*100).toFixed(0)+'% of total).'});
+  if(gpay>cash&&s>0) insights.push({icon:'📱',text:'Digital payments (₹'+fmt(gpay)+') exceed cash (₹'+fmt(cash)+') — your customers prefer UPI.'});
+  if(cash>gpay&&s>0) insights.push({icon:'💵',text:'Cash is still dominant (₹'+fmt(cash)+' vs ₹'+fmt(gpay)+' digital) — consider promoting GPay for better tracking.'});
+  if(margin>8) insights.push({icon:'✅',text:'Healthy profit margin of '+margin+'% — above typical vegetable business range.'});
+  if(margin>0&&margin<5) insights.push({icon:'⚠️',text:'Margin at '+margin+'% is thin — typical for vegetables but leaves no buffer. Target 5-8%.'});
+  if(bestDay.sales>avgDaily*2) insights.push({icon:'🔥',text:'Best day ('+bestDay.date+') was '+Math.round(bestDay.sales/avgDaily)+'x your average — replicate what worked!'});
+  const lowShop=Object.keys(SHOPS).reduce((worst,k)=>{const ss=sum(txs.filter(x=>x.shop===k),'sales');return ss>0&&ss<(worst.s||Infinity)?{k,s:ss}:worst;},{});
+  if(lowShop.k&&Object.keys(SHOPS).length>1) insights.push({icon:'📉',text:'<b>'+SHOPS[lowShop.k].name+'</b> needs attention — lowest sales at ₹'+fmt(lowShop.s)+'.'});
+  if(!insights.length) insights.push({icon:'📊',text:'Add more data to unlock deeper insights.'});
+  document.getElementById('rpt-insights-body').innerHTML=insights.map(i=>`<div class="insight-item"><div class="insight-icon">${i.icon}</div><div style="flex:1">${i.text}</div></div>`).join('');
+
+  // ═══ 12. ACTION PLAN ═══
+  const actions=[];
+  if(margin<5) actions.push({title:'Improve Margins',desc:'Negotiate 3-5% better rates with top 3 suppliers. Even ₹500/day savings = ₹15,000/month.'});
+  if(cash>gpay*2) actions.push({title:'Push Digital Payments',desc:'Put QR code prominently at billing counter. Digital = better tracking, less theft risk.'});
+  if(totalSal>s*0.12) actions.push({title:'Optimize Staff Cost',desc:'Salary is '+((totalSal/s)*100).toFixed(0)+'% of revenue. Cross-train staff for multi-shop coverage during low hours.'});
+  if(dailyData.some(d=>d.sales<avgDaily*0.5)) actions.push({title:'Fix Low Sales Days',desc:'Some days are 50% below average. Check stock availability, staff presence, and competitor activity on those days.'});
+  actions.push({title:'Daily Ledger Discipline',desc:'Scan every ledger within 24 hours. Delayed entries = missed leak detection.'});
+  if(Object.keys(SHOPS).length<5) actions.push({title:'Expansion Readiness',desc:'Document SOPs from your best shop. Standardized process = faster scaling to new locations.'});
+  document.getElementById('rpt-actions-body').innerHTML=actions.map((a,i)=>`<div class="action-item"><b>${i+1}. ${a.title}</b><div style="color:var(--muted);margin-top:3px">${a.desc}</div></div>`).join('');
+
   loadAudit(); updAI();
 }
-function showMonth(m,el){
-  document.querySelectorAll('.mtab').forEach(c=>c.classList.remove('on')); el.classList.add('on');
-  const txs=TXS.filter(t=>t.date?.startsWith(m)),pw=document.getElementById('pl-wrap');
-  if(!txs.length){pw.innerHTML='<div class="empty">No entries this month</div>';return;}
-  const ts=sum(txs,'sales'),te=sum(txs,'expense')+sum(txs,'payment'),tn=ts-te;
-  let html=`<table class="plt"><thead><tr><th>Shop</th><th>Sales</th><th>Expense</th><th>Net</th></tr></thead><tbody>`;
-  Object.keys(SHOPS).forEach(k=>{
-    const stxs=txs.filter(t=>t.shop===k),ss=sum(stxs,'sales'),se=sum(stxs,'expense')+sum(stxs,'payment'),sn=ss-se;
-    html+=`<tr><td>${SHOPS[k].icon} ${SHOPS[k].name}</td><td style="color:var(--green)">+₹${fmt(ss)}</td><td style="color:var(--red)">-₹${fmt(se)}</td><td style="color:${sn>=0?'var(--green)':'var(--red)'}">${sn>=0?'+':''}₹${fmt(sn)}</td></tr>`;
-  });
-  html+=`<tr><td><b>TOTAL</b></td><td><b style="color:var(--green)">+₹${fmt(ts)}</b></td><td><b style="color:var(--red)">-₹${fmt(te)}</b></td><td><b style="color:${tn>=0?'var(--green)':'var(--red)'}">${tn>=0?'+':''}₹${fmt(tn)}</b></td></tr></tbody></table>`;
-  pw.innerHTML=html;
+
+function showRptSection(id,el){
+  document.querySelectorAll('.rpt-section').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.rpt-chip').forEach(c=>c.classList.remove('on'));
+  document.getElementById('rpt-'+id)?.classList.add('on');
+  el.classList.add('on');
 }
 async function loadAudit(){
   const el=document.getElementById('audit-wrap'); if(!el)return;
